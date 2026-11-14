@@ -1,5 +1,5 @@
-# Contribuire ad AlacreOS
+# Contributing to AlacreOS
 
-Per una decisione sul progetto, apri una proposta nelle Issues. Parti dal problema, descrivi le alternative utili e spiega come verificheresti il risultato. Le domande aperte sono nella [pagina di progetto](docs/progetto.md).
+For a project decision, open a proposal in GitHub Issues. Describe the problem, the alternatives you considered, and how you would verify the result. See the [project status](docs/project.md) for open decisions.
 
-Per una correzione circoscritta, apri direttamente una pull request. Spiega cosa cambia e come l’hai verificato. Se la modifica chiude una Issue, collegala nella descrizione.
+For a focused fix, open a pull request. Explain what changed and how you verified it. If it closes an issue, link to the issue in the description. Use English in contributions.

@@ -1,7 +1,7 @@
-## Modifica
+## Changes
 
-<!-- Descrivi cosa cambia e perché. Collega l’eventuale Issue. -->
+<!-- Describe what changed and why. Link to any related issue. -->
 
-## Verifica
+## Verification
 
-<!-- Indica come hai controllato il risultato. -->
+<!-- Describe how you verified the changes. -->

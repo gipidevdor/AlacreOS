@@ -5,6 +5,10 @@
 
 # AlacreOS
 
-Il progetto è in fase di impostazione. Qui raccogliamo le prime decisioni; non ci sono ancora una build da avviare o una release da scaricare.
+*Determinism by Design.*
 
-[Stato del progetto](docs/progetto.md) · [Come contribuire](CONTRIBUTING.md)
+AlacreOS is a capability-based microkernel operating system project for industrial embedded systems and servers. It targets hard real-time operation on qualified AArch64 and x86-64 platforms and uses freestanding C++23.
+
+The project is at the architecture stage. The first implementation milestone covers single-core boot, address-space isolation, capabilities, a timer, EDF scheduling, and bounded IPC on both architectures.
+
+[Architecture specification](docs/architecture-v0.1.md) · [Project status](docs/project.md) · [Contributing](CONTRIBUTING.md) · [License](LICENSE)

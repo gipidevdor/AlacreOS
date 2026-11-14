@@ -1,0 +1,15 @@
+name: Bug report
+description: Report something in the repository that does not work as expected.
+body:
+  - type: textarea
+    id: behavior
+    attributes:
+      label: What happened?
+      description: Identify the page or file and describe the expected and actual results.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How can we reproduce it?
+      description: List the steps, if applicable.
