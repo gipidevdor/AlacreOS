@@ -117,6 +117,39 @@ The trusted boundary includes Alacre Core, hardware protection mechanisms, the b
 
 Recovery with a deadline requires reserved CPU capacity and memory, a restart protocol, rules for requests in flight, and, where applicable, time bounds for bringing a device to a safe state and reinitializing it. Recovery work must be admitted as part of the stated fault scenario.
 
+## Logical Filesystem
+
+AlacreOS uses the [Filesystem Hierarchy Standard (FHS) 3.0](https://specifications.freedesktop.org/fhs/latest/) as its directory layout and follows [POSIX.1-2024](https://standards.ieee.org/ieee/1003.1/7700/) semantics for the file operations it implements. Each filesystem view presents one tree rooted at `/`. This is the layout visible to applications; disk formats, partitioning, and recovery protocols are separate choices. The initial profile implements a subset of the standards.
+
+| Path | Purpose |
+| --- | --- |
+| `/usr/bin`, `/usr/sbin`, `/usr/lib`, `/usr/share` | System commands, administration commands, libraries, and architecture-independent data. Vendor files are read-only during normal operation. `/usr/local` is reserved for local administrator installs. |
+| `/bin`, `/sbin`, `/lib` | Compatibility symlinks to `/usr/bin`, `/usr/sbin`, and `/usr/lib`. The symlink targets are available with the root at startup. |
+| `/etc` | Machine-specific configuration, persistent on installed systems. Packages keep their shipped defaults under `/usr`. |
+| `/var/lib`, `/var/log`, `/var/cache`, `/var/spool`, `/var/tmp` | Writable service state, logs, caches, queues, and temporary files that may outlive a reboot. Installed profiles keep `/var` on persistent storage. |
+| `/run`, `/tmp` | Separate writable, memory-backed filesystems, recreated at boot. `/run` holds runtime service state; `/tmp` holds temporary files. `/var/run` points to `/run` and `/var/lock` to `/run/lock`. |
+| `/home`, `/root` | Home directories for users and the administrator, when present. |
+| `/boot`, `/dev` | Boot files and a virtual view of authorized device nodes, respectively. |
+| `/media`, `/mnt`, `/opt`, `/srv` | Removable media, temporary mounts, add-on packages, and site data served by the system. |
+
+AlacreOS uses the common [merged `/usr` layout](https://systemd.io/SYSTEMD_FILE_HIERARCHY_REQUIREMENTS/) for system files. Packages use standard subtrees: for example, `/etc/alacre/` for machine settings and `/var/lib/alacre/` for persistent state. They add no top-level directories.
+
+### Lookup and Authority
+
+A user-space virtual filesystem (VFS) service resolves paths and routes operations to the selected filesystem backend. The supervisor assigns each domain a filesystem view and grants access through capabilities. The service checks the rights on the view and on open handles. Mount configuration requires separate authority. Access to `/dev` depends on the device rights granted to the domain.
+
+Absolute paths resolve from the view's root. Relative paths resolve from the working directory or a directory descriptor, as in `openat`. Names are case-sensitive. `.` denotes the current directory; `..` at the view's root stays there. Absolute symlink targets also resolve from that root. Symlinks and mount traversal cannot grant access outside the assigned view or expand the caller's rights. The service caps pathname length, component length, and the number of symlinks followed. [Pathname resolution](https://man7.org/linux/man-pages/man7/path_resolution.7.html)
+
+The native SDK presents POSIX-style file descriptors. The first service supports regular files, directories, and symbolic links. Callers can open, read, write, and close files; inspect metadata and list directories; create and remove entries; and read symbolic link targets. The service profile specifies the supported flags and resource limits. `rename` is atomic within a writable mount for supported cases; across mounts it fails with `EXDEV`. The persistent backend must separately specify what survives a power loss. [Linux `rename(2)` semantics](https://man7.org/linux/man-pages/man2/rename.2.html)
+
+Alacre Linux uses its own filesystem view. Its compatibility layer checks Linux user and group IDs and mode bits within the authority granted to that view; Linux UID 0 does not grant native authority. Host data is shared only through explicitly authorized mounts. Each compatibility profile lists the supported device nodes, Linux ABI paths (such as the ELF interpreter path when dynamic linking is supported), and the implemented portions of `/proc` and `/sys`, where applicable.
+
+### Bootstrap and Real-Time Use
+
+After user-space IPC is available, the first filesystem service uses a read-only memory-backed root with quota-limited writable mounts at `/run` and `/tmp`. It can boot without persistent storage. Acceptance checks cover root layout and links, access denial across views and for unauthorized devices, `EROFS` on writes to the system tree, `EXDEV` on cross-mount renames, runtime quota exhaustion, and loss of temporary state on reboot.
+
+The initial Alacre RT profile loads required files before task activation and places their contents in resident memory. Admitted jobs use those mappings and bounded IPC to hand off logging or persistence to a non-RT service. They do not resolve paths, wait for storage, or depend on an ordinary filesystem operation to meet a deadline. Admission still accounts for interference from filesystem work outside the RT path.
+
 ## Implementation and Compatibility
 
 Alacre Core uses a controlled subset of freestanding C++23. The build disables exceptions and RTTI. The core avoids implicit allocation and uses preallocated resources on active RT paths. The build must verify the actual toolchain and runtime dependencies for each ISA.

@@ -11,6 +11,8 @@ The [v0.1 architecture specification](architecture-v0.1.md) defines the timing c
 
 The [EDF example](../examples/edf/README.md) exercises admission in the ideal scheduler model. The [kernel development guide](kernel-development.md) covers the current implementation and its tests. Use the [qualification guide](qualification.md) to record hardware evidence.
 
+The [logical filesystem](architecture-v0.1.md#logical-filesystem) defines the standard directory layout and the first user-space filesystem service. Its implementation follows user-space IPC and is outside the first hard real-time milestone.
+
 ## Open decisions
 
 - Select the two physical reference platforms and document the firmware settings that affect timing.

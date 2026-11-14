@@ -20,7 +20,7 @@ AlacreOS is a capability-based microkernel operating system for industrial embed
 | Communication | The first IPC profile uses preallocated queues and bounded messages. A full queue returns immediately. |
 | Platform qualification | Timing evidence covers the workload, kernel, hardware, and firmware. Energy is measured alongside deadline outcomes for the same workload. |
 
-Drivers, filesystems, networking, and the planned Alacre Linux compatibility layer run in user space.
+Drivers, filesystems, networking, and the planned Alacre Linux compatibility layer run in user space. The [logical filesystem](docs/architecture-v0.1.md#logical-filesystem) follows the Unix directory hierarchy defined by FHS 3.0 and uses POSIX semantics for supported operations.
 
 ## First milestone
 
