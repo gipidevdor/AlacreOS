@@ -3,6 +3,7 @@
 .type _start, %function
 _start:
     msr daifset, #0xf
+    msr spsel, #1
 
     ldr x0, =__bss_start
     ldr x1, =__bss_end
@@ -15,6 +16,8 @@ _start:
 2:
     ldr x0, =stack_top
     mov sp, x0
+    // QEMU virt places the DTB at the start of RAM for ELF boot.
+    mov x0, #0x40000000
     bl kernel_main
 3:
     wfi
@@ -25,3 +28,5 @@ _start:
 .balign 16
     .skip 16384
 stack_top:
+
+.section .note.GNU-stack,"",%progbits

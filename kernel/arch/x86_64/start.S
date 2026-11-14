@@ -1,3 +1,5 @@
+#include "apic.h"
+
 .section .note.Xen,"a",@note
 .balign 4
     .long 4, 4, 18             # XEN_ELFNOTE_PHYS32_ENTRY
@@ -28,6 +30,13 @@ _start:
     mov %eax, pdpt
     movl $0x83, page_directory
 
+    # Add a single uncached identity mapping for the QEMU xAPIC MMIO page.
+    mov $(apic_directory + 3), %eax
+    mov %eax, pdpt + 8 * (QEMU_XAPIC_BASE >> 30)
+    mov $(apic_table + 3), %eax
+    mov %eax, apic_directory + 8 * ((QEMU_XAPIC_BASE >> 21) & 511)
+    movl $(QEMU_XAPIC_BASE | 0x1b), apic_table + 8 * ((QEMU_XAPIC_BASE >> 12) & 511)
+
     mov %cr4, %eax
     or $(1 << 5), %eax         # Physical Address Extension
     mov %eax, %cr4
@@ -49,6 +58,7 @@ long_mode_entry:
     mov %ax, %es
     mov %ax, %ss
     lea stack_top(%rip), %rsp
+    mov %ebx, %edi             # PVH start_info physical address
     call kernel_main
 1:
     hlt
@@ -72,6 +82,10 @@ pml4:
 pdpt:
     .skip 4096
 page_directory:
+    .skip 4096
+apic_directory:
+    .skip 4096
+apic_table:
     .skip 4096
 .balign 16
     .skip 16384

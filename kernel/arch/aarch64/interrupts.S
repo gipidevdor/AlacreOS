@@ -1,0 +1,91 @@
+.section .text,"ax"
+.balign 2048
+.global exception_vectors
+exception_vectors:
+    // Four entries each for current EL with SP0, current EL with SPx,
+    // lower EL in AArch64, and lower EL in AArch32.
+    .rept 4
+        b unexpected_exception
+        .balign 128
+    .endr
+    b sync_entry
+    .balign 128
+    b irq_entry
+    .balign 128
+    .rept 2
+        b unexpected_exception
+        .balign 128
+    .endr
+    b domain_sync_vector
+    .balign 128
+    b domain_irq_vector
+    .balign 128
+    .rept 6
+        b unexpected_exception
+        .balign 128
+    .endr
+
+.macro save_context
+    // Full integer context plus the exception return PC and processor state.
+    stp x0, x1, [sp, #-272]!
+    stp x2, x3, [sp, #16]
+    stp x4, x5, [sp, #32]
+    stp x6, x7, [sp, #48]
+    stp x8, x9, [sp, #64]
+    stp x10, x11, [sp, #80]
+    stp x12, x13, [sp, #96]
+    stp x14, x15, [sp, #112]
+    stp x16, x17, [sp, #128]
+    stp x18, x19, [sp, #144]
+    stp x20, x21, [sp, #160]
+    stp x22, x23, [sp, #176]
+    stp x24, x25, [sp, #192]
+    stp x26, x27, [sp, #208]
+    stp x28, x29, [sp, #224]
+    str x30, [sp, #240]
+    mrs x1, elr_el1
+    mrs x2, spsr_el1
+    stp x1, x2, [sp, #256]
+.endm
+
+irq_entry:
+    save_context
+    mov x0, sp
+    bl platform_timer_interrupt
+    b restore_context
+
+sync_entry:
+    save_context
+    mrs x0, esr_el1
+    bl platform_completion_interrupt
+
+restore_context:
+    mov sp, x0
+    ldp x1, x2, [sp, #256]
+    msr elr_el1, x1
+    msr spsr_el1, x2
+    ldr x30, [sp, #240]
+    ldp x28, x29, [sp, #224]
+    ldp x26, x27, [sp, #208]
+    ldp x24, x25, [sp, #192]
+    ldp x22, x23, [sp, #176]
+    ldp x20, x21, [sp, #160]
+    ldp x18, x19, [sp, #144]
+    ldp x16, x17, [sp, #128]
+    ldp x14, x15, [sp, #112]
+    ldp x12, x13, [sp, #96]
+    ldp x10, x11, [sp, #80]
+    ldp x8, x9, [sp, #64]
+    ldp x6, x7, [sp, #48]
+    ldp x4, x5, [sp, #32]
+    ldp x2, x3, [sp, #16]
+    ldp x0, x1, [sp], #272
+    eret
+
+unexpected_exception:
+    msr daifset, #0xf
+1:
+    wfi
+    b 1b
+
+.section .note.GNU-stack,"",%progbits

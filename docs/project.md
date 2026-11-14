@@ -5,13 +5,15 @@ The [v0.1 architecture specification](architecture-v0.1.md) defines the timing c
 | Step | Deliverable | Evidence |
 | --- | --- | --- |
 | Select reference platforms | One physical AArch64 target and one physical x86-64 target, with documented firmware and operating conditions. | A platform record that identifies the timer, interrupt controller, and shared hardware that can delay an RT job. |
-| Bring up the kernel | Single-core serial boot runs on both QEMU targets. The next implementation step connects the timer and exception entry, then starts two isolated user-space domains on each target. | Dual-architecture boot smoke tests, followed by timer traces and checks for rejected accesses and capability invocations. |
-| Exercise scheduling and IPC | The shared EDF dispatcher handles job events and budget accounting with synthetic ticks. Connect those transitions to live timer interrupts and context switches, then add bounded IPC. | Host and guest EDF tests, followed by queue saturation behavior and a live overrun trace with an independent job. |
+| Bring up the kernel | Single-core boot, platform handoff, local timer IRQs and statically mapped user-space domains run on both QEMU targets. | Dual-architecture smoke tests check fault containment and rejection of unauthorized identity IPC. |
+| Exercise scheduling and IPC | Timer events drive preemption and budget enforcement for two kernel-mode test threads. Extend the path to isolated user-space threads and add bounded IPC. | Host and guest EDF tests, followed by queue saturation behavior and a user-space overrun trace with an independent job. |
 | Qualify the first profile | The same reference workload at the 100 µs target on both physical platforms. | Timing analysis with justified bounds, corroborating traces, and an energy baseline at a declared measurement boundary. |
 
 The [EDF example](../examples/edf/README.md) exercises admission in the ideal scheduler model. The [kernel development guide](kernel-development.md) covers the current implementation and its tests. Use the [qualification guide](qualification.md) to record hardware evidence.
 
 The [logical filesystem](architecture-v0.1.md#logical-filesystem) defines the standard directory layout and the first user-space filesystem service. Its implementation follows user-space IPC and is outside the first hard real-time milestone.
+
+The [native identity core](native-identity.md) runs inside an isolated QEMU domain. The host reference verifies mutual TLS and SQLite persistence. Guest deployment requires a native transport and a protected, durable storage service.
 
 ## Open decisions
 

@@ -22,18 +22,20 @@ AlacreOS is a capability-based microkernel operating system for industrial embed
 
 Drivers, filesystems, networking, and the planned Alacre Linux compatibility layer run in user space. The [logical filesystem](docs/architecture-v0.1.md#logical-filesystem) follows the Unix directory hierarchy defined by FHS 3.0 and uses POSIX semantics for supported operations.
 
+The [native identity service](docs/native-identity.md) runs in an isolated management domain in both QEMU development images. A separate host test exercises certificate authentication and persistent account state.
+
 ## First milestone
 
-Alacre Core boots on one emulated core per target and exercises the same C++23 EDF dispatcher on both architectures. The first milestone extends that path to hardware timer interrupts, isolated user-space domains, capabilities, and bounded IPC. On qualified physical hardware, the reference workload targets **100 µs from programmed timer expiry to observable user-space job completion**.
+Alacre Core boots on one emulated core per target, receives platform data through a versioned boot handoff, and uses the shared C++23 EDF dispatcher to preempt and resume two kernel-mode test threads. A separate smoke test runs register-based identity IPC in isolated user-space domains. The first milestone extends these paths to admitted user-space jobs, general capabilities and bounded queued IPC. On qualified physical hardware, the reference workload targets **100 µs from programmed timer expiry to observable user-space job completion**.
 
-Run the tests with Clang, LLD, QEMU, Make, and Python installed.
+On Ubuntu 24.04, install the toolchains listed in the [kernel development guide](docs/kernel-development.md) and run:
 
 ```sh
-make test
+make test HOST_CXX=g++-14
 make smoke
 ```
 
-See the [kernel development guide](docs/kernel-development.md) for toolchain settings, boot details, and the dispatcher contract.
+The guide also covers other GCC toolchains, boot details, and the dispatcher contract.
 
 Run the [EDF admission example](examples/edf/README.md) with Python 3.9 or newer from the repository root.
 

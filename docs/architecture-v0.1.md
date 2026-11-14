@@ -22,6 +22,8 @@ Alacre Core is preemptive. Non-preemptible sections, including intervals with in
 
 A task defines a sequence of activations. Each activation releases a job with a release time, an absolute deadline, and a remaining budget. In the initial profile, each task has at most one active job, associated with a thread and a dedicated `SchedulingContext`. A job runs until it completes, is preempted, exhausts its budget, reaches its deadline, or faults. The initial profile permits non-blocking IPC and admits jobs that can execute without self-suspension.
 
+**Perception Scheduler** is the name reserved for a future policy in which runtime measurements, such as power, temperature, or contention for shared resources, can change which eligible job runs. Using those measurements for platform qualification, static placement, or admission leaves the dispatch policy as EDF. Any such policy must define the inputs that can affect dispatch and show that admitted tasks still meet their hard real-time guarantees.
+
 **Memory and interrupts.** Pages, stacks, mappings, and kernel structures needed on RT paths are prepared and made resident before activation. Immediate interrupt handling does the minimum required to acknowledge, contain, and report the event. Deferred work receives a budget and a release contract. The profile declares interrupt rates and burst limits and defines how to contain sources that exceed them.
 
 Drivers, filesystems, networking, and Linux compatibility run in user space. Non-RT activities use dedicated cores or a CPU allocation with temporal isolation and a validated timing analysis. An RT dependency is admissible only when the delays it introduces have verifiable bounds.
@@ -106,6 +108,10 @@ A descriptor identifies a pool buffer and the valid range within it. The protoco
 An operation is *wait-free* if every invocation completes with a defined outcome within a bounded number of its own steps, independently of other participants’ progress. This property is verified for the implementation, its atomic primitives, and the ISA. A bound in elapsed time also requires a platform model.
 
 Invalidating a capability prevents further invocations through that reference. Revoking access through existing mappings requires disabling the mappings, invalidating the applicable CPU and DMA translations, and ensuring that in-flight accesses have ceased. Memory is eligible for reuse only after those conditions are met. The initial profile performs teardown outside the RT job path, and the analysis accounts for any interference it causes.
+
+## Native User Management
+
+AlacreOS assigns human accounts to a native identity service in an isolated user-space management domain. The microkernel enforces the authority of each protection domain through capabilities. A human role controls operations exposed by the management plane. It grants no implicit kernel authority. System services and admitted RT tasks receive their own statically scoped capabilities at startup. The [native identity contract](native-identity.md) defines the account model, the adapter's trust boundary, and the required safety and security evidence.
 
 ## Faults and Recovery
 
