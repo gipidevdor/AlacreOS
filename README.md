@@ -7,8 +7,29 @@
 
 *Determinism by Design.*
 
-AlacreOS is a capability-based microkernel operating system project for industrial embedded systems and servers. It targets hard real-time operation on qualified AArch64 and x86-64 platforms and uses freestanding C++23.
+AlacreOS is a capability-based microkernel operating system for industrial embedded systems and servers. Its design targets hard real-time workloads on qualified AArch64 and x86-64 platforms, with a kernel in freestanding C++23.
 
-The project is at the architecture stage. The first implementation milestone covers single-core boot, address-space isolation, capabilities, a timer, EDF scheduling, and bounded IPC on both architectures.
+[Architecture specification](docs/architecture-v0.1.md) · [Roadmap](docs/project.md) · [Contributing](CONTRIBUTING.md) · [BSD 3-Clause](LICENSE)
 
-[Architecture specification](docs/architecture-v0.1.md) · [Project status](docs/project.md) · [Contributing](CONTRIBUTING.md) · [License](LICENSE)
+## The design
+
+| Area | Approach |
+| --- | --- |
+| Memory and authority | Alacre Core isolates address spaces and checks the rights carried by each capability. |
+| CPU time | Alacre RT assigns work to cores before execution. Each core schedules eligible jobs by earliest deadline first (EDF) and enforces their budgets. |
+| Communication | The first IPC profile uses preallocated queues and bounded messages. A full queue returns immediately. |
+| Platform qualification | Timing evidence covers the workload, kernel, hardware, and firmware. Energy is measured alongside deadline outcomes for the same workload. |
+
+Drivers, filesystems, networking, and the planned Alacre Linux compatibility layer run in user space.
+
+## First milestone
+
+**Project stage** · Architecture and reference analysis. A bootable kernel and hardware qualification are still ahead. The first implementation will boot on one active core per target and exercise address-space isolation, capabilities, a timer, EDF scheduling, and bounded IPC. On qualified physical hardware, the reference workload targets **100 µs from programmed timer expiry to observable user-space job completion**.
+
+Run the [EDF admission example](examples/edf/README.md) with Python 3.9 or newer from the repository root.
+
+```sh
+python3 examples/edf/admission.py
+```
+
+The example reproduces an accepted workload and a rejected workload in the ideal single-core model. The [qualification guide](docs/qualification.md) describes the additional evidence required on physical hardware.

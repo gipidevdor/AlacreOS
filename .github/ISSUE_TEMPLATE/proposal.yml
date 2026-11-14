@@ -5,14 +5,14 @@ body:
     id: problem
     attributes:
       label: Problem
-      description: What problem would you solve, and for whom?
+      description: Describe the problem and link the relevant section of the architecture specification.
     validations:
       required: true
   - type: textarea
     id: proposal
     attributes:
       label: Proposal
-      description: What would you change, and how would you verify it?
+      description: Describe the change, its assumptions, and the evidence you would use to evaluate it.
     validations:
       required: true
   - type: textarea

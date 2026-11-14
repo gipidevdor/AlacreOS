@@ -4,4 +4,4 @@
 
 ## Verification
 
-<!-- Describe how you verified the changes. -->
+<!-- Give reproduction commands or link the evidence. For timing, isolation, or resource changes, name the affected architecture contract. -->

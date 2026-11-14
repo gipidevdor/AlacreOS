@@ -1,5 +1,7 @@
 # Contributing to AlacreOS
 
-For a project decision, open a proposal in GitHub Issues. Describe the problem, the alternatives you considered, and how you would verify the result. See the [project status](docs/project.md) for open decisions.
+Use the [roadmap](docs/project.md) to find open decisions. Open a proposal in GitHub Issues with the relevant section of the [architecture specification](docs/architecture-v0.1.md), your assumptions, and the evidence you would use to compare alternatives.
 
-For a focused fix, open a pull request. Explain what changed and how you verified it. If it closes an issue, link to the issue in the description. Use English in contributions.
+For a focused fix, open a pull request in English and describe what changed and how you verified it. If a change affects a timing, isolation, or resource guarantee, identify the affected contract and what evidence needs updating.
+
+Run `python3 -m unittest discover -s examples/edf -v` for changes to the reference analysis. Include the target configuration and reproduction commands when contributing [hardware qualification evidence](docs/qualification.md).

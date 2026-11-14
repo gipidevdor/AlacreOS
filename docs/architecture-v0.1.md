@@ -1,10 +1,12 @@
 # AlacreOS Architecture Specification v0.1
 
+[Roadmap](project.md) · [Qualification guide](qualification.md) · [EDF admission example](../examples/edf/README.md)
+
 ## Purpose and Guarantees
 
 **Alacre Core protects memory, authority, and CPU time.** Each resource must be explicitly represented, allocated through authorized operations, and kept within verifiable limits. This specification defines the microkernel requirements and the evidence needed to substantiate Alacre RT guarantees. Alacre RT treats operational energy as a platform qualification and optimization criterion within the hard real-time contract.
 
-AlacreOS is a capability-based microkernel operating system for AArch64 and x86_64. It is written in freestanding C++23 and distributed under the BSD 3-Clause license. It targets industrial embedded systems and servers. Alacre RT provides the hard real-time environment, Alacre Linux provides the Linux compatibility layer, and Alacre SDK provides development tools and libraries.
+AlacreOS is a capability-based microkernel operating system for AArch64 and x86_64. The design calls for a kernel in freestanding C++23 and targets industrial embedded systems and servers. The project uses the BSD 3-Clause license. Alacre RT is the hard real-time environment, Alacre Linux is the planned Linux compatibility layer, and Alacre SDK is the planned set of development tools and libraries.
 
 ### Scope of the Guarantees
 
@@ -69,6 +71,8 @@ In the initial profile, the kernel assigns `Q` at an admitted release and charge
 
 In the ideal model of independent sporadic tasks on a preemptive processor, a task’s processor demand over an interval of length `t` is `max(0, floor((t − D) / T) + 1) × C`. For example, two tasks with `C = 60 µs`, `D = 100 µs`, and `T = 1 ms` have a combined utilization of 12%. A simultaneous release requires 120 µs of execution within 100 µs, so the task set fails admission even in the ideal model. [Zhang and Burns, EDF processor-demand analysis, §3](https://www.cs.york.ac.uk/rts/static/papers/R%3AZhang%3A2009a.pdf)
 
+The [runnable EDF example](../examples/edf/README.md) reproduces this rejection and compares it with a feasible task set in the same ideal model.
+
 For each core, admission control must show that admitted demand and additional costs fit within the available processor capacity over every relevant interval. It must account for blocking, non-preemptible sections, timer behavior and clock resolution, kernel overhead, interrupt bursts, and interference from shared resources. The analysis must explicitly assign each cost to demand, available capacity, or a per-job bound and document the assumptions used to combine those terms. If the test enumerates intervals, it must justify the time horizon and the intervals it checks.
 
 The initial profile uses static admission. Before starting the tasks, the system must apply a configuration backed by reproducible analysis. A change to tasks, budgets, topology, or another assumption invalidates admission for the modified configuration until it is reassessed. For IPC or I/O chains, per-core EDF feasibility must be accompanied by end-to-end bounds on release, queueing, service, and delivery.
@@ -81,7 +85,7 @@ Alacre RT considers energy during platform selection, static task placement, and
 
 Each qualified AArch64 and x86_64 configuration declares its permitted CPU and device power states, its minimum delivered performance under the stated power and thermal conditions, and the shared hardware domains affected by each control. The initial profile uses a fixed, qualified performance configuration for RT cores. It permits idle states only when their worst-case entry and wake-up costs, interrupt delivery, and any cache or device restart costs are covered by the timing analysis. That analysis must include sporadic releases that can arrive while a core is idle. [Linux kernel documentation on CPU idle latency](https://docs.kernel.org/admin-guide/pm/cpuidle.html)
 
-Later profiles may admit dynamic voltage and frequency scaling, deeper idle states, or power caps when analysis covers their worst-case effects on all affected RT cores. Admission must account for transition latency, reduced execution capacity, shared power limits, and any hardware or firmware throttling that can occur within the operating envelope. A power or thermal setting that changes an admission assumption requires reassessment. If the platform leaves the qualified thermal envelope, the system follows its declared fault response. [Arm documentation on SCMI power and performance management](https://developer.arm.com/Tools%20and%20Software/Trusted%20Firmware-A) · [Linux kernel documentation on firmware and thermal interference](https://docs.kernel.org/core-api/real-time/hardware.html#firmware)
+Later profiles may admit dynamic voltage and frequency scaling, deeper idle states, or power caps when analysis covers their worst-case effects on all affected RT cores. Admission must account for transition latency, reduced execution capacity, shared power limits, and any hardware or firmware throttling that can occur within the operating envelope. A power or thermal setting that changes an admission assumption requires reassessment. If the platform leaves the qualified thermal envelope, the system follows its declared fault response. [Arm documentation on SCMI power and performance management](https://developer.arm.com/community/arm-community-blogs/b/architectures-and-processors-blog/posts/improved-power-management-system-control-through-scmi) · [Linux kernel documentation on firmware and thermal interference](https://docs.kernel.org/core-api/real-time/hardware.html#firmware)
 
 ### Energy Measurement and Controls
 
