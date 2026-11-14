@@ -2,6 +2,8 @@
 
 Use this checklist for each physical reference target. The [architecture specification](architecture-v0.1.md#first-milestone-acceptance-criteria) defines the acceptance criteria and the scope of each guarantee.
 
+The [QEMU smoke test](kernel-development.md) supplies functional evidence for the boot path and dispatcher. The timing and energy records below come from physical reference targets.
+
 ## Record the configuration
 
 | Record | Include |

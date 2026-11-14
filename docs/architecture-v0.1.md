@@ -1,6 +1,6 @@
 # AlacreOS Architecture Specification v0.1
 
-[Roadmap](project.md) · [Qualification guide](qualification.md) · [EDF admission example](../examples/edf/README.md)
+[Roadmap](project.md) · [Kernel development](kernel-development.md) · [Qualification guide](qualification.md) · [EDF admission example](../examples/edf/README.md)
 
 ## Purpose and Guarantees
 

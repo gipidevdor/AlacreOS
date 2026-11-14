@@ -24,7 +24,16 @@ Drivers, filesystems, networking, and the planned Alacre Linux compatibility lay
 
 ## First milestone
 
-**Project stage** · Architecture and reference analysis. A bootable kernel and hardware qualification are still ahead. The first implementation will boot on one active core per target and exercise address-space isolation, capabilities, a timer, EDF scheduling, and bounded IPC. On qualified physical hardware, the reference workload targets **100 µs from programmed timer expiry to observable user-space job completion**.
+Alacre Core boots on one emulated core per target and exercises the same C++23 EDF dispatcher on both architectures. The first milestone extends that path to hardware timer interrupts, isolated user-space domains, capabilities, and bounded IPC. On qualified physical hardware, the reference workload targets **100 µs from programmed timer expiry to observable user-space job completion**.
+
+Run the tests with Clang, LLD, QEMU, Make, and Python installed.
+
+```sh
+make test
+make smoke
+```
+
+See the [kernel development guide](docs/kernel-development.md) for toolchain settings, boot details, and the dispatcher contract.
 
 Run the [EDF admission example](examples/edf/README.md) with Python 3.9 or newer from the repository root.
 
