@@ -1,4 +1,4 @@
-#include "edf.hpp"
+#include "edf_admission.hpp"
 
 #include <assert.h>
 
@@ -8,6 +8,28 @@ using alacre::ExecutionCharge;
 using alacre::JobState;
 
 namespace {
+
+using alacre::AdmissionStatus;
+using alacre::TaskTiming;
+using alacre::admit_ideal_edf;
+
+constexpr TaskTiming exact_demand[]{{2, 2, 4}, {2, 4, 4}};
+static_assert(admit_ideal_edf(exact_demand, 2).status == AdmissionStatus::feasible);
+static_assert(admit_ideal_edf(exact_demand, 1).status == AdmissionStatus::analysis_limit);
+
+constexpr TaskTiming late_overload[]{{2, 2, 3}, {2, 4, 6}};
+constexpr auto late_result = admit_ideal_edf(late_overload, 3);
+static_assert(late_result.status == AdmissionStatus::overload && late_result.interval == 5);
+
+constexpr TaskTiming large_overload[]{{UINT64_MAX, UINT64_MAX, UINT64_MAX}, {1, UINT64_MAX, UINT64_MAX}};
+constexpr auto large_result = admit_ideal_edf(large_overload, 1);
+static_assert(large_result.status == AdmissionStatus::overload && large_result.interval == UINT64_MAX);
+
+constexpr TaskTiming huge_hyperperiod[]{{1, 1, UINT64_MAX}, {1, 2, UINT64_MAX - 1}};
+static_assert(admit_ideal_edf(huge_hyperperiod, 64).status == AdmissionStatus::analysis_limit);
+
+constexpr TaskTiming invalid_timing[]{{1, 3, 2}};
+static_assert(admit_ideal_edf(invalid_timing, 64).status == AdmissionStatus::invalid_timing);
 
 void preemption_preserves_budget_and_release_order() {
     EdfScheduler edf;
@@ -116,6 +138,43 @@ void late_completion_is_a_miss() {
     assert(edf.job(0) && edf.job(0)->state == JobState::deadline_missed);
 }
 
+void enumerate_completion_and_expiry() {
+    // The second job shares the deadline and was released after the first.
+    for (alacre::Tick deadline = 1; deadline <= 5; ++deadline) {
+        for (alacre::Tick budget = 1; budget <= deadline; ++budget) {
+            for (alacre::Tick wall = 0; wall <= deadline + 1; ++wall) {
+                for (alacre::Tick charge = 0; charge <= wall; ++charge) {
+                    for (const bool completion : {false, true}) {
+                        EdfScheduler edf;
+                        assert(edf.configure(1, {budget, deadline, deadline}));
+                        assert(edf.configure(0, {deadline, deadline, deadline}));
+                        assert(edf.release(1) && edf.release(0));
+                        assert(edf.running() == 1 && edf.next_boundary() == budget);
+                        const ExecutionCharge execution{charge};
+                        assert(completion ? edf.complete_at(wall, execution) : edf.advance_to(wall, execution));
+
+                        auto expected = JobState::ready;
+                        if (completion && charge <= budget && wall <= deadline) {
+                            expected = JobState::completed;
+                        } else if (charge > budget || (!completion && charge == budget)) {
+                            expected = JobState::budget_exhausted;
+                        } else if (wall >= deadline) {
+                            expected = JobState::deadline_missed;
+                        }
+                        const auto first = edf.job(1);
+                        const auto second = edf.job(0);
+                        assert(first && first->state == expected);
+                        assert(first->remaining == (expected == JobState::ready ? budget - charge : 0));
+                        assert(second && second->state == (wall < deadline ? JobState::ready
+                                                                          : JobState::deadline_missed));
+                        assert(second->remaining == (wall < deadline ? deadline : 0));
+                    }
+                }
+            }
+        }
+    }
+}
+
 } // namespace
 
 int main() {
@@ -125,4 +184,5 @@ int main() {
     deadline_limits_resume_near_clock_limit();
     wall_time_and_execution_are_independent();
     late_completion_is_a_miss();
+    enumerate_completion_and_expiry();
 }

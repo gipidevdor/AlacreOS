@@ -22,6 +22,10 @@ struct TaskTiming {
     Tick budget;
     Tick deadline;
     Tick period;
+
+    [[nodiscard]] constexpr bool valid() const noexcept {
+        return budget != 0 && budget <= deadline && deadline <= period;
+    }
 };
 
 enum class JobState { idle, ready, completed, budget_exhausted, deadline_missed };
@@ -57,8 +61,7 @@ public:
         if (started_) {
             return std::unexpected(EdfError::configuration_closed);
         }
-        if (timing.budget == 0 || timing.budget > timing.deadline ||
-            timing.deadline > timing.period) {
+        if (!timing.valid()) {
             return std::unexpected(EdfError::invalid_timing);
         }
         slots_[id].timing = timing;

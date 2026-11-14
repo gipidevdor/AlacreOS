@@ -1,6 +1,5 @@
-"""Run the reference identity test with a private, disposable database."""
+"""Run the reference identity test in a private, disposable directory."""
 
-from pathlib import Path
 import subprocess
 import sys
 import tempfile
@@ -8,5 +7,4 @@ import tempfile
 
 if __name__ == "__main__":
     with tempfile.TemporaryDirectory() as directory:
-        database = Path(directory).resolve() / "accounts.db"
-        subprocess.run([sys.argv[1], str(database)], check=True)
+        subprocess.run([sys.argv[1], directory], check=True)

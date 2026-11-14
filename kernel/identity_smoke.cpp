@@ -1,12 +1,9 @@
 #include "domain.hpp"
 #include "guest_abi.hpp"
+#include "user_smoke.hpp"
 
 extern "C" {
-extern unsigned char __identity_code[], __identity_code_end[];
-extern unsigned char __identity_client[], __identity_client_end[];
-extern unsigned char __identity_state[], __identity_state_end[];
-void identity_guest_entry() noexcept;
-void identity_client_entry(uint64_t role, uint64_t session, uint64_t other) noexcept;
+extern unsigned char __identity_client[], __identity_state[];
 }
 
 namespace alacre::domain {
@@ -15,19 +12,11 @@ namespace {
 using namespace identity::guest;
 using Transport = alacre::domain::Message;
 
-enum Slot : size_t { service, management, operations };
-constexpr size_t stack_bytes = 2 * page_size;
-alignas(page_size) unsigned char stacks[capacity][stack_bytes];
-
-Range range(const unsigned char *begin, const unsigned char *end) noexcept {
-    return {reinterpret_cast<uintptr_t>(begin), reinterpret_cast<uintptr_t>(end)};
-}
-
 bool called(const Event &event, Request operation) noexcept {
     return event.stop == Stop::call && event.message.word[0] == operation;
 }
 
-Event to_service(Slot caller, Transport request) noexcept {
+Event to_service(SmokeSlot caller, Transport request) noexcept {
     request.word[4] = caller;
     request.word[5] = platform::monotonic_now();
     return run(service, request);
@@ -35,14 +24,14 @@ Event to_service(Slot caller, Transport request) noexcept {
 
 // Only the bootstrap fixture may submit open_verified. A client trap can only
 // invoke the operations granted to its endpoint. Identity still checks the role.
-Event invoke(Slot caller, const Event &event) noexcept {
+Event invoke(SmokeSlot caller, const Event &event) noexcept {
     if (!called(event, operate) && !called(event, set_enabled)) {
         return {Transport{{reply, 0}}, Stop::call, 0};
     }
     return to_service(caller, event.message);
 }
 
-bool refused_access(Slot slot, uintptr_t address, bool write) noexcept {
+bool refused_access(SmokeSlot slot, uintptr_t address, bool write) noexcept {
     const auto event = run(slot, {{0, address, 0, write}});
     if (event.stop != Stop::fault || event.fault_address != address || run(slot, {}).stop != Stop::stopped) {
         return false;
@@ -54,16 +43,7 @@ bool refused_access(Slot slot, uintptr_t address, bool write) noexcept {
 } // namespace
 
 bool identity_smoke() noexcept {
-    const auto client_code = range(__identity_client, __identity_client_end);
-    const auto identity_state = range(__identity_state, __identity_state_end);
-    const auto client_entry = reinterpret_cast<uintptr_t>(identity_client_entry);
-    const Image images[capacity]{
-        {range(__identity_code, __identity_code_end), identity_state,
-         range(stacks[service], stacks[service] + stack_bytes), reinterpret_cast<uintptr_t>(identity_guest_entry)},
-        {client_code, {}, range(stacks[management], stacks[management] + stack_bytes), client_entry},
-        {client_code, {}, range(stacks[operations], stacks[operations] + stack_bytes), client_entry},
-    };
-    if (!initialize(images) || !called(run(service, {}), receive)) {
+    if (!called(run(service, {}), receive)) {
         return false;
     }
 
@@ -109,7 +89,7 @@ bool identity_smoke() noexcept {
     }
     const auto worker_done = run(operations, revoked.message);
     if (!called(worker_done, finish) || worker_done.message.word[1] != 1 ||
-        !refused_access(operations, identity_state.begin, false)) {
+        !refused_access(operations, reinterpret_cast<uintptr_t>(__identity_state), false)) {
         return false;
     }
     // After the worker fault, the independent manager can still use the service.
@@ -123,7 +103,7 @@ bool identity_smoke() noexcept {
     }
     manager_done = run(management, enabled.message);
     return called(manager_done, finish) && manager_done.message.word[1] == 1 &&
-           refused_access(management, client_code.begin, true);
+           refused_access(management, reinterpret_cast<uintptr_t>(__identity_client), true);
 }
 
 } // namespace alacre::domain

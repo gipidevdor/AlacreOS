@@ -30,5 +30,31 @@ jobs:
           persist-credentials: false
       - run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends g++-14 g++-14-aarch64-linux-gnu libc6-dev-arm64-cross lld llvm qemu-system-arm qemu-system-x86 libssl-dev libsqlite3-dev
-      - run: make -j2 test identity-host-test identity-targets smoke HOST_CXX=g++-14
+          sudo apt-get install -y --no-install-recommends g++-14 g++-14-aarch64-linux-gnu libc6-dev-arm64-cross lld llvm qemu-system-arm qemu-system-x86
+      - run: make -j2 test identity-targets smoke HOST_CXX=g++-14 SMOKE_RUNS=3
+
+  safety:
+    name: C++ safety checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends clang-20 llvm-20 libclang-rt-20-dev libc++-20-dev libc++abi-20-dev z3
+      - run: make -j2 safety SAFETY_CXX=clang++-20 LLVM_PROFDATA=llvm-profdata-20 LLVM_COV=llvm-cov-20
+
+  identity-host:
+    name: Identity journal and TLS
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends clang-20 llvm-20 libclang-rt-20-dev libc++-20-dev libc++abi-20-dev libssl-dev
+      - run: make -j2 safety-identity-host SAFETY_CXX=clang++-20 LLVM_PROFDATA=llvm-profdata-20 LLVM_COV=llvm-cov-20

@@ -1,5 +1,6 @@
 """Boot the two development images and verify their serial self-test."""
 
+import argparse
 from pathlib import Path
 import subprocess
 import sys
@@ -23,7 +24,9 @@ def boot(architecture, machine, cpu, handoff):
     expected = (f"Alacre Core booted: {architecture}\n"
                 f"Boot handoff v1: PASS ({handoff})\n"
                 "Context EDF smoke: PASS\n"
-                "Isolated identity IPC: PASS\n").encode()
+                "Isolated identity IPC: PASS\n"
+                "Queued domain IPC: PASS\n"
+                "User EDF overrun: PASS\n").encode()
     # SeaBIOS may omit the optional RSDP from the PVH record.
     accepted = (expected, expected.replace(b"E820)", b"E820, ACPI RSDP)"))
     with tempfile.TemporaryDirectory() as directory:
@@ -48,8 +51,14 @@ def boot(architecture, machine, cpu, handoff):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--runs", type=int, default=1, help="successful boots to require per target")
+    runs = parser.parse_args().runs
+    if runs < 1:
+        parser.error("--runs must be positive")
     try:
-        for target, (machine_type, cpu_model, handoff) in MACHINES.items():
-            boot(target, machine_type, cpu_model, handoff)
+        for _ in range(runs):
+            for target, (machine_type, cpu_model, handoff) in MACHINES.items():
+                boot(target, machine_type, cpu_model, handoff)
     except (OSError, RuntimeError) as error:
         sys.exit(str(error))

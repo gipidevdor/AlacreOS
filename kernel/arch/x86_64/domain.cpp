@@ -26,12 +26,14 @@ Table pdpts[capacity];
 Table directories[capacity];
 Table pages[capacity];
 
-alignas(16) uint64_t contexts[capacity][20];
+constexpr size_t frame_words = 20;
+alignas(16) uint64_t contexts[capacity][frame_words];
 bool stopped[capacity];
 constexpr size_t arguments[]{10, 11, 12, 13, 9, 8}; // RDI, RSI, RDX, RCX, R8, R9
+static_assert(sizeof(arguments) / sizeof(arguments[0]) == message_words);
 uint64_t *active{};
 uint64_t kernel_root{};
-Event result{};
+Event *active_event{};
 
 struct [[gnu::packed]] DescriptorTablePointer {
     uint16_t limit;
@@ -78,8 +80,8 @@ bool valid(Range range) noexcept {
 
 } // namespace
 
-bool initialize(const Image (&images)[capacity]) noexcept {
-    if (kernel_root != 0 || !separated(images)) {
+bool arch::initialize(const Image (&images)[capacity]) noexcept {
+    if (kernel_root != 0) {
         return false;
     }
     for (const auto &image : images) {
@@ -146,46 +148,61 @@ bool initialize(const Image (&images)[capacity]) noexcept {
     return true;
 }
 
-Event run(size_t slot, Message input) noexcept {
-    if (slot >= capacity || stopped[slot]) {
-        return {{}, Stop::stopped, 0};
+void arch::resume(size_t slot, const Message *input, uint64_t deadline, Event &event) noexcept {
+    if (kernel_root == 0 || slot >= capacity || stopped[slot]) {
+        event.stop = Stop::stopped;
+        return;
     }
     active = contexts[slot];
-    for (size_t i = 0; i < 6; ++i) {
-        active[arguments[i]] = input.word[i];
+    if (input != nullptr) {
+        for (size_t i = 0; i < message_words; ++i) {
+            active[arguments[i]] = input->word[i];
+        }
     }
-    result = {};
+    active_event = &event;
     select(reinterpret_cast<uintptr_t>(&roots[slot]));
-    arm_watchdog();
+    platform::arm_timer(deadline);
     auto *kernel_stack = reinterpret_cast<unsigned char *>(&tss) + offsetof(TaskState, rsp);
     x86_domain_enter(active, kernel_stack);
     platform::disarm_timer();
     select(kernel_root);
+    active_event = nullptr;
     active = nullptr;
-    stopped[slot] = result.stop != Stop::call;
-    return result;
+}
+
+void arch::retire(size_t slot) noexcept {
+    if (slot < capacity) {
+        stopped[slot] = true;
+    }
 }
 
 extern "C" uint64_t x86_domain_event(const uint64_t *frame, uint64_t kind) noexcept {
-    if (active == nullptr) {
+    const auto timestamp = platform::monotonic_now();
+    if (active_event == nullptr) {
         platform::halt();
     }
-    if (kind == 0) {
-        for (size_t i = 0; i < 20; ++i) {
+    auto &event = *active_event;
+    event.timestamp = timestamp;
+    if (kind == 0 || kind == 3) {
+        for (size_t i = 0; i < frame_words; ++i) {
             active[i] = frame[i];
         }
-        constexpr uint64_t arithmetic_flags = 0x8d5;
-        active[17] = (frame[17] & arithmetic_flags) | 0x202;
-        for (size_t i = 0; i < 6; ++i) {
-            result.message.word[i] = frame[arguments[i]];
+        // DF must survive a timer preemption between STD and CLD.
+        constexpr uint64_t user_flags = 0xcd5;
+        active[17] = (frame[17] & user_flags) | 0x202;
+        if (kind == 3) {
+            x86_acknowledge_domain_timer();
+            event.stop = Stop::timer;
+        } else {
+            for (size_t i = 0; i < message_words; ++i) {
+                event.message.word[i] = frame[arguments[i]];
+            }
+            event.stop = Stop::call;
         }
-    } else if (kind == 3) {
-        x86_acknowledge_domain_timer();
-        result.stop = Stop::timeout;
     } else {
-        result.stop = Stop::fault;
+        event.stop = Stop::fault;
         if (kind == 1) {
-            asm volatile("mov %%cr2, %0" : "=r"(result.fault_address));
+            asm volatile("mov %%cr2, %0" : "=r"(event.fault_address));
         }
     }
     return tss.rsp[0];

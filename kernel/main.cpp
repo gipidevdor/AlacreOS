@@ -1,6 +1,6 @@
-#include "domain.hpp"
 #include "edf.hpp"
 #include "platform.hpp"
+#include "user_smoke.hpp"
 
 #include <atomic>
 
@@ -148,10 +148,21 @@ void verify_edf() {
         alacre::platform::halt();
     }
     verify_edf();
+    if (!alacre::domain::initialize_user_smoke()) {
+        fail("Domain setup: FAIL\n");
+    }
     if (!alacre::domain::identity_smoke()) {
         fail("Isolated identity IPC: FAIL\n");
     }
     print("Isolated identity IPC: PASS\n");
+    if (!alacre::domain::ipc_smoke()) {
+        fail("Queued domain IPC: FAIL\n");
+    }
+    print("Queued domain IPC: PASS\n");
+    if (!alacre::domain::user_edf_smoke()) {
+        fail("User EDF overrun: FAIL\n");
+    }
+    print("User EDF overrun: PASS\n");
     alacre::platform::halt();
 }
 

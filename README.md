@@ -26,7 +26,7 @@ The [native identity service](docs/native-identity.md) runs in an isolated manag
 
 ## First milestone
 
-Alacre Core boots on one emulated core per target, receives platform data through a versioned boot handoff, and uses the shared C++23 EDF dispatcher to preempt and resume two kernel-mode test threads. A separate smoke test runs register-based identity IPC in isolated user-space domains. The first milestone extends these paths to admitted user-space jobs, general capabilities and bounded queued IPC. On qualified physical hardware, the reference workload targets **100 µs from programmed timer expiry to observable user-space job completion**.
+Alacre Core boots on one emulated core per target and receives platform data through a versioned boot handoff. Both development images exercise native identity, fixed-capacity IPC and EDF budget enforcement in isolated user-space domains. The build checks the user-space EDF test workload for feasible processor demand in the ideal single-core model. The first milestone targets **100 µs from programmed timer expiry to observable user-space job completion** on qualified physical hardware.
 
 On Ubuntu 24.04, install the toolchains listed in the [kernel development guide](docs/kernel-development.md) and run:
 

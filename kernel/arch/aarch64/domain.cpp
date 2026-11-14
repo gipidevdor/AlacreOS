@@ -43,8 +43,9 @@ constexpr uint64_t condition_flags = 0xf0000000;
 
 Context contexts[capacity];
 bool stopped[capacity];
+bool initialized{};
 Context *active{};
-Event result{};
+Event *active_event{};
 
 uint64_t descriptor(const Table &table) noexcept {
     return reinterpret_cast<uintptr_t>(&table) | 3;
@@ -62,10 +63,10 @@ bool valid(Range range) noexcept {
 
 } // namespace
 
-bool initialize(const Image (&images)[capacity]) noexcept {
+bool arch::initialize(const Image (&images)[capacity]) noexcept {
     uint64_t control;
     asm volatile("mrs %0, sctlr_el1" : "=r"(control));
-    if ((control & 1) != 0 || !separated(images)) {
+    if ((control & 1) != 0) {
         return false;
     }
     for (const auto &image : images) {
@@ -118,53 +119,78 @@ bool initialize(const Image (&images)[capacity]) noexcept {
     select(kernel_root);
     control |= (1UL << 12) | (1UL << 2) | 1; // I, C, M
     asm volatile("msr sctlr_el1, %0; isb" : : "r"(control) : "memory");
+    initialized = true;
     return true;
 }
 
-Event run(size_t slot, Message input) noexcept {
-    if (slot >= capacity || stopped[slot]) {
-        return {{}, Stop::stopped, 0};
+void arch::resume(size_t slot, const Message *input, uint64_t deadline, Event &event) noexcept {
+    if (!initialized || slot >= capacity || stopped[slot]) {
+        event.stop = Stop::stopped;
+        return;
     }
     active = &contexts[slot];
-    for (size_t i = 0; i < 6; ++i) {
-        active->registers[i] = input.word[i];
+    if (input != nullptr) {
+        for (size_t i = 0; i < message_words; ++i) {
+            active->registers[i] = input->word[i];
+        }
     }
-    result = {};
+    active_event = &event;
     select(roots[slot]);
-    arm_watchdog();
+    platform::arm_timer(deadline);
     arm_domain_enter(active->registers);
     platform::disarm_timer();
     select(kernel_root);
+    active_event = nullptr;
     active = nullptr;
-    stopped[slot] = result.stop != Stop::call;
-    return result;
 }
 
-extern "C" void arm_domain_sync(const uint64_t *frame, uint64_t syndrome, uintptr_t address) noexcept {
-    if (active == nullptr) {
-        platform::halt();
+void arch::retire(size_t slot) noexcept {
+    if (slot < capacity) {
+        stopped[slot] = true;
     }
-    if ((syndrome & 0xfc00ffffU) != ((0x15U << 26) | 1U)) {
-        result.stop = Stop::fault;
-        result.fault_address = ((syndrome >> 26) == 0x24 && (syndrome & (1U << 10)) == 0) ? address : 0;
-        return;
-    }
+}
+
+namespace {
+
+void save_frame(const uint64_t *frame) noexcept {
     for (size_t i = 0; i < 31; ++i) {
         active->registers[i] = frame[i];
     }
     active->stack = frame[31];
     active->pc = frame[32];
     active->status = (frame[33] & condition_flags) | user_status;
-    for (size_t i = 0; i < 6; ++i) {
-        result.message.word[i] = frame[i];
-    }
 }
 
-extern "C" void arm_domain_irq(const uint64_t *) noexcept {
-    if (active == nullptr) {
+} // namespace
+
+extern "C" void arm_domain_sync(const uint64_t *frame, uint64_t syndrome, uintptr_t address) noexcept {
+    const auto timestamp = platform::monotonic_now();
+    if (active_event == nullptr) {
         platform::halt();
     }
-    result.stop = arm_acknowledge_domain_irq() ? Stop::timeout : Stop::fault;
+    auto &event = *active_event;
+    event.timestamp = timestamp;
+    if ((syndrome & 0xfc00ffffU) != ((0x15U << 26) | 1U)) {
+        event.stop = Stop::fault;
+        event.fault_address = ((syndrome >> 26) == 0x24 && (syndrome & (1U << 10)) == 0) ? address : 0;
+        return;
+    }
+    for (size_t i = 0; i < message_words; ++i) {
+        event.message.word[i] = frame[i];
+    }
+    save_frame(frame);
+    event.stop = Stop::call;
+}
+
+extern "C" void arm_domain_irq(const uint64_t *frame) noexcept {
+    const auto timestamp = platform::monotonic_now();
+    if (active_event == nullptr) {
+        platform::halt();
+    }
+    active_event->timestamp = timestamp;
+    const bool timer = arm_acknowledge_domain_irq();
+    save_frame(frame);
+    active_event->stop = timer ? Stop::timer : Stop::interrupted;
 }
 
 } // namespace alacre::domain

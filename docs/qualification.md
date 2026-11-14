@@ -4,6 +4,12 @@ Use this checklist for each physical reference target. The [architecture specifi
 
 The [QEMU smoke test](kernel-development.md) supplies functional evidence for the boot path and dispatcher. The timing and energy records below come from physical reference targets.
 
+## Trace software safety evidence
+
+For any deployment with a safety function, derive the software safety requirements from the system hazard analysis. Identify the safe state, the time allowed to reach it, the required systematic capability, and the assumptions about the hardware and other software. Trace each requirement to its implementation, verification method and result. Record the exact test configuration, tool versions, diagnostics, structural coverage gaps and their disposition. Apply the software safety lifecycle and assess support tools within the intended scope of IEC 61508-3. [IEC 61508-3](https://webstore.iec.ch/en/publication/5517)
+
+The [instrumented checks](kernel-development.md#instrumented-checks) exercise the prototype on the host and in QEMU. Evidence for an installation also requires review of the safety requirements, the integrated fault response and the bounds measured and justified for the actual operating conditions.
+
 ## Record the configuration
 
 | Record | Include |
