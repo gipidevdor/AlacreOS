@@ -1,0 +1,15 @@
+name: Segnalazione
+description: Segnala qualcosa che nel repository non funziona come previsto.
+body:
+  - type: textarea
+    id: comportamento
+    attributes:
+      label: Cosa succede?
+      description: Indica la pagina o il file, il risultato atteso e quello che hai ottenuto.
+    validations:
+      required: true
+  - type: textarea
+    id: passaggi
+    attributes:
+      label: Come si riproduce?
+      description: Elenca i passaggi, se necessari.

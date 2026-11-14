@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="450" viewBox="0 0 1200 450">
+  <defs>
+    <radialGradient id="field" cx="50%" cy="42%" r="72%">
+      <stop stop-color="#faf9f6"/>
+      <stop offset="1" stop-color="#eeede9"/>
+    </radialGradient>
+    <linearGradient id="front" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop stop-color="#474740"/>
+      <stop offset="1" stop-color="#141513"/>
+    </linearGradient>
+    <linearGradient id="fold" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop stop-color="#67665e"/>
+      <stop offset="1" stop-color="#252622"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop stop-color="#d45d39"/>
+      <stop offset="1" stop-color="#ad3d23"/>
+    </linearGradient>
+  </defs>
+
+  <rect x=".5" y=".5" width="1199" height="449" rx="22" fill="url(#field)" stroke="#dedcd6"/>
+  <g fill="none" stroke="#bcb9b2">
+    <path d="M40 58V40h18m1084 0h18v18m0 334v18h-18M58 410H40v-18" opacity=".72"/>
+    <path d="M40 225h330m460 0h330" opacity=".36"/>
+    <circle cx="600" cy="225" r="148" opacity=".42"/>
+    <path d="M600 68v18m0 278v18M443 225h18m278 0h18" opacity=".72"/>
+  </g>
+  <g fill="#68645d" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="16" letter-spacing="2.5">
+    <text x="65" y="397">AL / OS</text>
+    <text x="1135" y="397" text-anchor="end">01</text>
+  </g>
+
+  <g transform="translate(55 26) scale(.91)">
+    <path fill="url(#front)" d="M492 294 573 144q6-11 19-11h27l-74 139q-12 22-35 22Z"/>
+    <path fill="url(#fold)" d="m633 143 75 141q5 10-7 10h-25q-21 0-30-18l-39-74Z"/>
+    <path fill="url(#accent)" d="M571 254h53l12 23h-77Z"/>
+  </g>
+</svg>
